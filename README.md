@@ -1,5 +1,5 @@
 # Project 196
-Just a silly game I'm writing from the suggestions of [196@lemmy.blahaj.zone](https://lemmy.blahaj.zone/c/196) lemmy community.
+Just a silly game I'm writing from the [suggestions](https://lemmy.blahaj.zone/post/7690755) of [196@lemmy.blahaj.zone](https://lemmy.blahaj.zone/c/196) lemmy community.
 
 <!--
 ## Plan and design
@@ -7,7 +7,7 @@ WIP
 -->
 
 ## Thanks
-A huge thanks to @frezik@midwest.social for [suggesting](https://lemmy.blahaj.zone/comment/5744038) this awesome idea!
+A huge thanks to [@frezik@midwest.social](https://midwest.social/u/frezik) for [suggesting](https://lemmy.blahaj.zone/comment/5744038) this awesome idea!
 > A survival crafting game where the tech tree goes backwards. You start in a prepper hole with working water filtration, food sources, etc, and everything is nice. Then something breaks and maybe you fix it. Something else breaks and maybe you fix that. Three things break at once, and at least one of them is going to stay broken. Have to do something more primative and time consuming.
 >
 > Eventually, enough things break that it’s no longer sustainable and you die. Game ranks you based on how long you last.
