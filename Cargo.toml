@@ -3,6 +3,8 @@ name = "project_196"
 version = "0.0.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
+readme = "README.md"
+# rust-version = "1.75"
 
 [profile.dev]
 opt-level = 1
@@ -15,6 +17,15 @@ strip = true
 lto = true
 panic = "abort"
 
-
 [dependencies]
 bevy = { version = "0.12.1" }
+bevy-inspector-egui = "0.22.1" # Inspector
+bevy_egui = "0.24.0" # Debug UI
+bevy_embedded_assets = "0.9.1"
+leafwing-input-manager = "0.11.2" # Input
+# bevy_renet = "0.0.10" # Networking
+# bevy_xpbd_3d = "0.3.3" # Physics
+
+anyhow = "1.0.79"
+rand = "0.8.5"
+
