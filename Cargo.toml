@@ -23,8 +23,8 @@ bevy-inspector-egui = "0.22.1" # Inspector
 bevy_egui = "0.24.0" # Debug UI
 bevy_embedded_assets = "0.9.1"
 leafwing-input-manager = "0.11.2" # Input
+bevy_xpbd_3d = "0.3.3" # Physics
 # bevy_renet = "0.0.10" # Networking
-# bevy_xpbd_3d = "0.3.3" # Physics
 
 anyhow = "1.0.79"
 rand = "0.8.5"
