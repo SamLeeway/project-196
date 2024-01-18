@@ -1,0 +1,20 @@
+[package]
+name = "project_196"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+strip = true
+lto = true
+panic = "abort"
+
+
+[dependencies]
+bevy = { version = "0.12.1" }
