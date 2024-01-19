@@ -1,8 +1,11 @@
 use std::{f32::consts::PI, ops::DerefMut};
 
-use bevy::{prelude::*, window::{PrimaryWindow, CursorGrabMode}};
-use leafwing_input_manager::prelude::*;
+use bevy::{
+	prelude::*,
+	window::{CursorGrabMode, PrimaryWindow},
+};
 use bevy_xpbd_3d::{parry::na::clamp, prelude::*};
+use leafwing_input_manager::prelude::*;
 
 use crate::input::Action;
 
@@ -40,7 +43,7 @@ pub struct PlayerBundle {
 }
 
 impl Default for PlayerBundle {
-	fn default() -> Self { 
+	fn default() -> Self {
 		Self {
 			player: Player,
 			health: Health(1.0),
@@ -53,13 +56,19 @@ impl Default for PlayerBundle {
 }
 
 pub fn move_player(
-	mut player_query: Query<(Entity, &ActionState<Action>, &mut Transform, &Children), With<Player>>,
+	mut player_query: Query<
+		(Entity, &ActionState<Action>, &mut Transform, &Children),
+		With<Player>,
+	>,
 	mut camera_query: Query<&mut Transform, (With<PlayerCamera>, Without<Player>)>,
 	window: Query<&Window, With<PrimaryWindow>>,
 	mut time: Res<Time>,
 ) {
 	for (entity, inputs, mut player_transform, children) in player_query.iter_mut() {
-		let camera_entity = children.iter().find(|entity| camera_query.contains(**entity)).unwrap();
+		let camera_entity = children
+			.iter()
+			.find(|entity| camera_query.contains(**entity))
+			.unwrap();
 		let mut camera_transform = camera_query.get_mut(*camera_entity).unwrap();
 
 		let window = window.single();
@@ -71,7 +80,8 @@ pub fn move_player(
 			let (_, camera_x_rot, _) = camera_transform.rotation.to_euler(EulerRot::default());
 			let camera_x_rot = clamp(camera_x_rot - look_input.y, -PI / 2.0, PI / 2.0);
 
-			camera_transform.rotation = Quat::from_euler(EulerRot::default(), 0.0, camera_x_rot, 0.0);
+			camera_transform.rotation =
+				Quat::from_euler(EulerRot::default(), 0.0, camera_x_rot, 0.0);
 			// Rotating character left/right
 			player_transform.rotate_axis(Vec3::Y, -look_input.x);
 		}
@@ -84,9 +94,9 @@ pub fn move_player(
 			move_input = move_input.normalize_or_zero();
 		}
 
-		player_transform.translation = player_transform.translation + player_transform.rotation * move_input.extend(0.0).xzy() * time.delta_seconds() * 6.0;
+		player_transform.translation = player_transform.translation
+			+ player_transform.rotation * move_input.extend(0.0).xzy() * time.delta_seconds() * 6.0;
 	}
-	
 }
 
 pub fn spawn_player(
@@ -94,40 +104,48 @@ pub fn spawn_player(
 	mut meshes: ResMut<Assets<Mesh>>,
 	mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-	let mesh = meshes.add(shape::Capsule { radius: 0.4, depth: 1.0, ..default() }.into());
+	let mesh = meshes.add(
+		shape::Capsule {
+			radius: 0.4,
+			depth: 1.0,
+			..default()
+		}
+		.into(),
+	);
 	let material = materials.add(StandardMaterial::default());
 
-	commands.spawn((
-		Name::new("Player"),
-		PlayerBundle::default(),
-		PbrBundle {
-			mesh,
-			material,
-			..default()
-		},
-		crate::input::default_inputs(),
-		RigidBody::Kinematic,
-		LockedAxes::ROTATION_LOCKED,
-		Collider::capsule(1.0, 0.4),
-		LinearVelocity::default(),
-	)).with_children(|commands| {
-		commands.spawn((
-			bevy::core_pipeline::fxaa::Fxaa::default(),
-			Name::new("Player Camera"),
-			PlayerCamera,
-			Camera3dBundle {
-				transform: Transform::from_translation(Vec3::Y * 0.75),
-				projection: Projection::Perspective(PerspectiveProjection { 
-					fov: 85.0f32.to_radians(),
-					..default()
-				}),
+	commands
+		.spawn((
+			Name::new("Player"),
+			PlayerBundle::default(),
+			PbrBundle {
+				mesh,
+				material,
 				..default()
 			},
-			VisibilityBundle::default(),
-		));
-	});
+			crate::input::default_inputs(),
+			RigidBody::Kinematic,
+			LockedAxes::ROTATION_LOCKED,
+			Collider::capsule(1.0, 0.4),
+			LinearVelocity::default(),
+		))
+		.with_children(|commands| {
+			commands.spawn((
+				bevy::core_pipeline::fxaa::Fxaa::default(),
+				Name::new("Player Camera"),
+				PlayerCamera,
+				Camera3dBundle {
+					transform: Transform::from_translation(Vec3::Y * 0.75),
+					projection: Projection::Perspective(PerspectiveProjection {
+						fov: 85.0f32.to_radians(),
+						..default()
+					}),
+					..default()
+				},
+				VisibilityBundle::default(),
+			));
+		});
 }
-
 
 pub fn drain_stats(
 	mut hunger_q: Query<(Entity, &mut Hunger)>,

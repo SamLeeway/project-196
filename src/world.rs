@@ -8,7 +8,13 @@ pub fn spawn_world(
 	mut meshes: ResMut<Assets<Mesh>>,
 	mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-	let mesh = meshes.add(shape::Plane { size: 15.0, ..default() }.into());
+	let mesh = meshes.add(
+		shape::Plane {
+			size: 15.0,
+			..default()
+		}
+		.into(),
+	);
 	let material = materials.add(StandardMaterial::default());
 
 	commands.spawn((
@@ -20,26 +26,20 @@ pub fn spawn_world(
 			..default()
 		},
 		RigidBody::Static,
-		Collider::heightfield(vec![vec![0.0;2];2], Vec3::splat(15.0)),
+		Collider::heightfield(vec![vec![0.0; 2]; 2], Vec3::splat(15.0)),
 		TestInteraction,
 	));
-
 
 	commands.spawn((
 		Name::new("Light"),
 		DirectionalLightBundle {
-			directional_light: DirectionalLight { 
+			directional_light: DirectionalLight {
 				illuminance: 30000.0,
 				..default()
 			},
-			transform: Transform::from_rotation(Quat::from_euler(
-				EulerRot::XYZ,
-				1.5,
-				3.3,
-				-2.1,
-			)),
+			transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, 1.5, 3.3, -2.1)),
 			..default()
-		}
+		},
 	));
 
 	// Ambient light

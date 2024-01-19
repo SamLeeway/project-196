@@ -3,18 +3,17 @@ use leafwing_input_manager::prelude::*;
 
 pub struct InputPlugin;
 impl Plugin for InputPlugin {
-    fn build(&self, app: &mut App) {
-        app 
-			.add_plugins(InputManagerPlugin::<Action>::default())
+	fn build(&self, app: &mut App) {
+		app.add_plugins(InputManagerPlugin::<Action>::default())
 			.add_systems(Update, cursor_grab_system);
-    }
+	}
 }
 
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
 pub enum Action {
-    Move,
+	Move,
 	Look,
-    Jump,
+	Jump,
 	Use,
 	UnlockMouse,
 }
@@ -38,8 +37,7 @@ pub fn default_inputs() -> InputManagerBundle<Action> {
 pub fn cursor_grab_system(
 	mut window: Query<&mut Window, With<PrimaryWindow>>,
 	input: Query<&ActionState<Action>>,
-	#[cfg(debug_assertions)]
-	mut gui: Query<&mut bevy_inspector_egui::bevy_egui::EguiContext>,
+	#[cfg(debug_assertions)] mut gui: Query<&mut bevy_inspector_egui::bevy_egui::EguiContext>,
 ) {
 	let mut window = window.single_mut();
 

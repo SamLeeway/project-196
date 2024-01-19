@@ -1,16 +1,28 @@
-use bevy::{ecs::{change_detection::MutUntyped, system::SystemState, event::ManualEventReader}, prelude::*, reflect::{ReflectFromPtr, TypeRegistry}};
+use bevy::{
+	ecs::{change_detection::MutUntyped, event::ManualEventReader, system::SystemState},
+	prelude::*,
+	reflect::{ReflectFromPtr, TypeRegistry},
+};
 use bevy_xpbd_3d::prelude::*;
 use leafwing_input_manager::prelude::*;
 
-use crate::{input::Action, player::{Player, PlayerCamera}};
+use crate::{
+	input::Action,
+	player::{Player, PlayerCamera},
+};
 
 pub struct InteractionPlugin;
 impl Plugin for InteractionPlugin {
-    fn build(&self, app: &mut App) {
-        app .add_systems(Update, (interact_input, interact).chain().after(crate::player::move_player))
-			.add_event::<InteractionEvent>()
-			.register_type::<TestInteraction>();
-    }
+	fn build(&self, app: &mut App) {
+		app.add_systems(
+			Update,
+			(interact_input, interact)
+				.chain()
+				.after(crate::player::move_player),
+		)
+		.add_event::<InteractionEvent>()
+		.register_type::<TestInteraction>();
+	}
 }
 
 #[derive(Event, Debug, Clone, Copy)]
@@ -32,17 +44,16 @@ pub trait Interaction {
 #[reflect(Interaction)]
 pub struct TestInteraction;
 impl Interaction for TestInteraction {
-    fn interact(&mut self, interaction: InteractionEvent, world: &mut World) {
-        println!("Touched some grass!");
-    }
+	fn interact(&mut self, interaction: InteractionEvent, world: &mut World) {
+		println!("Touched some grass!");
+	}
 }
-
 
 #[derive(PhysicsLayer)]
 enum Layer {
-    Player,
-    Interactable,
-    Ground,
+	Player,
+	Interactable,
+	Ground,
 }
 
 pub fn interact_input(
@@ -57,13 +68,21 @@ pub fn interact_input(
 			continue;
 		}
 
-		let camera_entity = children.iter().find(|entity| camera_query.contains(**entity)).unwrap();
+		let camera_entity = children
+			.iter()
+			.find(|entity| camera_query.contains(**entity))
+			.unwrap();
 		let mut camera_transform = camera_query.get(*camera_entity).unwrap();
 
 		let filter = SpatialQueryFilter::new().without_entities([entity]); //.with_masks([Layer::Interactable]);
 
-		if let Some(ray_hit) = spatial_query.cast_ray(camera_transform.translation(), camera_transform.forward(), 5.0, true, filter) {
-			
+		if let Some(ray_hit) = spatial_query.cast_ray(
+			camera_transform.translation(),
+			camera_transform.forward(),
+			5.0,
+			true,
+			filter,
+		) {
 			event_writer.send(InteractionEvent {
 				player: entity,
 				interactable: ray_hit.entity,
@@ -74,19 +93,21 @@ pub fn interact_input(
 
 // This is such a mess omfg
 pub fn interact(world: &mut World) {
-
 	let type_registry = world.resource::<AppTypeRegistry>().0.clone();
 	let type_registry = type_registry.read();
 
 	let mut events = world.resource_mut::<Events<InteractionEvent>>();
 	let last_events: Vec<_> = events.get_reader().read(events.as_ref()).copied().collect();
 	events.clear();
-	
+
 	for interaction in last_events {
-		let components: Vec<_> = world.entity(interaction.interactable).archetype().components().collect();
+		let components: Vec<_> = world
+			.entity(interaction.interactable)
+			.archetype()
+			.components()
+			.collect();
 
 		for component_id in components.into_iter() {
-
 			let type_id = world
 				.components()
 				.get_info(component_id)
@@ -94,13 +115,15 @@ pub fn interact(world: &mut World) {
 				.type_id()
 				.unwrap();
 
-			let Some(component) = world.get_mut_by_id(interaction.interactable, component_id) else {
+			let Some(component) = world.get_mut_by_id(interaction.interactable, component_id)
+			else {
 				continue;
 			};
 
 			let component: MutUntyped<'static> = unsafe { std::mem::transmute(component) };
 
-			let Some(mut view) = get_interaction_from_mut_untyped(component, &type_registry, type_id)
+			let Some(mut view) =
+				get_interaction_from_mut_untyped(component, &type_registry, type_id)
 			else {
 				continue;
 			};
