@@ -2,11 +2,13 @@
 
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::*;
+use bevy_xpbd_3d::plugins::PhysicsPlugins;
 use leafwing_input_manager::prelude::*;
 
 mod player;
 mod world;
 mod input;
+mod interaction;
 
 fn main() {
     let mut app = App::default();
@@ -20,6 +22,8 @@ fn main() {
                 ..default()
             }),
             input::InputPlugin,
+            PhysicsPlugins::default(),
+            interaction::InteractionPlugin,
         ))
         .add_systems(Startup, (
             crate::player::spawn_player, 

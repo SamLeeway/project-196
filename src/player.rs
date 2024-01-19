@@ -6,19 +6,19 @@ use bevy_xpbd_3d::{parry::na::clamp, prelude::*};
 
 use crate::input::Action;
 
-#[derive(Component, Debug, Clone, Copy, Deref, DerefMut)]
+#[derive(Component, Reflect, Debug, Clone, Copy, Deref, DerefMut)]
 pub struct Health(f32);
 
-#[derive(Component, Debug, Clone, Copy, Deref, DerefMut)]
+#[derive(Component, Reflect, Debug, Clone, Copy, Deref, DerefMut)]
 pub struct Hunger(f32);
 
-#[derive(Component, Debug, Clone, Copy, Deref, DerefMut)]
+#[derive(Component, Reflect, Debug, Clone, Copy, Deref, DerefMut)]
 pub struct Thirst(f32);
 
-#[derive(Component, Debug, Clone, Copy, Deref, DerefMut)]
+#[derive(Component, Reflect, Debug, Clone, Copy, Deref, DerefMut)]
 pub struct Energy(f32);
 
-#[derive(Component, Default, Debug, Clone, Copy)]
+#[derive(Component, Reflect, Default, Debug, Clone, Copy)]
 pub struct Inventory {
 	main_hand: Option<Entity>,
 }
@@ -106,7 +106,7 @@ pub fn spawn_player(
 			..default()
 		},
 		crate::input::default_inputs(),
-		RigidBody::Dynamic,
+		RigidBody::Kinematic,
 		LockedAxes::ROTATION_LOCKED,
 		Collider::capsule(1.0, 0.4),
 		LinearVelocity::default(),

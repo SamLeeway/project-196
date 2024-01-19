@@ -1,12 +1,14 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
+use crate::interaction::TestInteraction;
+
 pub fn spawn_world(
 	mut commands: Commands,
 	mut meshes: ResMut<Assets<Mesh>>,
 	mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-	let mesh = meshes.add(shape::Plane { size: 10.0, ..default() }.into());
+	let mesh = meshes.add(shape::Plane { size: 15.0, ..default() }.into());
 	let material = materials.add(StandardMaterial::default());
 
 	commands.spawn((
@@ -14,11 +16,12 @@ pub fn spawn_world(
 		PbrBundle {
 			mesh: mesh.clone(),
 			material: material.clone(),
-			transform: Transform::from_scale(Vec3::splat(2.0)).with_translation(Vec3::NEG_Y),
+			transform: Transform::from_translation(Vec3::NEG_Y),
 			..default()
 		},
-		// RigidBody::Static,
-		// Collider::heightfield()
+		RigidBody::Static,
+		Collider::heightfield(vec![vec![0.0;2];2], Vec3::splat(15.0)),
+		TestInteraction,
 	));
 
 
