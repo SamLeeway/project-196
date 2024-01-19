@@ -14,7 +14,7 @@ pub fn spawn_world(
 		PbrBundle {
 			mesh: mesh.clone(),
 			material: material.clone(),
-			transform: Transform::from_scale(Vec3::splat(10.0)).with_translation(Vec3::NEG_Y),
+			transform: Transform::from_scale(Vec3::splat(2.0)).with_translation(Vec3::NEG_Y),
 			..default()
 		},
 		// RigidBody::Static,

@@ -19,11 +19,15 @@ fn main() {
                 }),
                 ..default()
             }),
-            InputManagerPlugin::<input::Action>::default()
+            input::InputPlugin,
         ))
         .add_systems(Startup, (
             crate::player::spawn_player, 
             crate::world::spawn_world
+        ))
+        .add_systems(Update, (
+            crate::player::move_player,
+            crate::player::drain_stats,
         ));
 
     #[cfg(debug_assertions)]
