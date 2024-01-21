@@ -4,11 +4,15 @@ use bevy::prelude::*;
 use bevy_inspector_egui::quick::*;
 use bevy_xpbd_3d::plugins::PhysicsPlugins;
 use leafwing_input_manager::prelude::*;
+use stations::WaterStation;
 
 mod input;
 mod interaction;
 mod player;
 mod world;
+
+mod items;
+mod stations;
 
 fn main() {
 	let mut app = App::default();
@@ -22,17 +26,12 @@ fn main() {
 			..default()
 		}),
 		input::InputPlugin,
-		PhysicsPlugins::default(),
 		interaction::InteractionPlugin,
+		PhysicsPlugins::default(),
+		player::PlayerPlugin,
 	))
-	.add_systems(
-		Startup,
-		(crate::player::spawn_player, crate::world::spawn_world),
-	)
-	.add_systems(
-		Update,
-		(crate::player::move_player, crate::player::drain_stats),
-	);
+	.add_systems(Startup, stations::spawn_station)
+	.register_type::<WaterStation>();
 
 	#[cfg(debug_assertions)]
 	app.add_plugins(WorldInspectorPlugin::new());

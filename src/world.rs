@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 
-use crate::interaction::TestInteraction;
-
 pub fn spawn_world(
 	mut commands: Commands,
 	mut meshes: ResMut<Assets<Mesh>>,
@@ -27,7 +25,6 @@ pub fn spawn_world(
 		},
 		RigidBody::Static,
 		Collider::heightfield(vec![vec![0.0; 2]; 2], Vec3::splat(15.0)),
-		TestInteraction,
 	));
 
 	commands.spawn((

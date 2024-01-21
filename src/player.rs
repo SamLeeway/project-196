@@ -7,23 +7,43 @@ use bevy::{
 use bevy_xpbd_3d::{parry::na::clamp, prelude::*};
 use leafwing_input_manager::prelude::*;
 
-use crate::input::Action;
+use crate::{input::Action, items::Item};
+
+
+pub struct PlayerPlugin;
+impl Plugin for PlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+				Startup,
+				(crate::player::spawn_player, crate::world::spawn_world),
+			)	
+			.add_systems(
+				Update,
+				(crate::player::move_player, crate::player::drain_stats),
+			)
+			.register_type::<Health>()
+			.register_type::<Hunger>()
+			.register_type::<Thirst>()
+			.register_type::<Energy>()
+			.register_type::<Inventory>();
+    }
+}
 
 #[derive(Component, Reflect, Debug, Clone, Copy, Deref, DerefMut)]
-pub struct Health(f32);
+pub struct Health(pub f32);
 
 #[derive(Component, Reflect, Debug, Clone, Copy, Deref, DerefMut)]
-pub struct Hunger(f32);
+pub struct Hunger(pub f32);
 
 #[derive(Component, Reflect, Debug, Clone, Copy, Deref, DerefMut)]
-pub struct Thirst(f32);
+pub struct Thirst(pub f32);
 
 #[derive(Component, Reflect, Debug, Clone, Copy, Deref, DerefMut)]
-pub struct Energy(f32);
+pub struct Energy(pub f32);
 
 #[derive(Component, Reflect, Default, Debug, Clone, Copy)]
 pub struct Inventory {
-	main_hand: Option<Entity>,
+	pub main_hand: Option<Entity>,
 }
 
 #[derive(Component, Debug, Clone, Copy)]
@@ -114,10 +134,18 @@ pub fn spawn_player(
 	);
 	let material = materials.add(StandardMaterial::default());
 
+	let item = commands.spawn((
+		Name::new("Cup"),
+		Item::Cup { filled: false },
+	)).id();
+
 	commands
 		.spawn((
 			Name::new("Player"),
-			PlayerBundle::default(),
+			PlayerBundle {
+				inventory: Inventory { main_hand: Some(item) },
+				..default()
+			},
 			PbrBundle {
 				mesh,
 				material,

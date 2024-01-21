@@ -1,3 +1,5 @@
+use std::mem;
+
 use bevy::{
 	ecs::{change_detection::MutUntyped, event::ManualEventReader, system::SystemState},
 	prelude::*,
@@ -8,7 +10,7 @@ use leafwing_input_manager::prelude::*;
 
 use crate::{
 	input::Action,
-	player::{Player, PlayerCamera},
+	player::{Player, PlayerCamera, Hunger, Thirst, Inventory}, stations::Station, items::Item,
 };
 
 pub struct InteractionPlugin;
@@ -20,33 +22,14 @@ impl Plugin for InteractionPlugin {
 				.chain()
 				.after(crate::player::move_player),
 		)
-		.add_event::<InteractionEvent>()
-		.register_type::<TestInteraction>();
+		.add_event::<InteractionEvent>();
 	}
 }
 
-#[derive(Event, Debug, Clone, Copy)]
+#[derive(Event, Debug, Clone)]
 pub struct InteractionEvent {
-	player: Entity,
-	interactable: Entity,
-}
-
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Interactable;
-
-// Quick and dirty interaction system cause I want to save my last two braincells
-#[reflect_trait]
-pub trait Interaction {
-	fn interact(&mut self, interaction: InteractionEvent, world: &mut World);
-}
-
-#[derive(Component, Reflect)]
-#[reflect(Interaction)]
-pub struct TestInteraction;
-impl Interaction for TestInteraction {
-	fn interact(&mut self, interaction: InteractionEvent, world: &mut World) {
-		println!("Touched some grass!");
-	}
+	pub player: Entity,
+	pub station: Option<Entity>,
 }
 
 #[derive(PhysicsLayer)]
@@ -59,7 +42,6 @@ enum Layer {
 pub fn interact_input(
 	player_query: Query<(Entity, &ActionState<Action>, &Children), With<Player>>,
 	camera_query: Query<&GlobalTransform, With<PlayerCamera>>,
-	interactable_query: Query<Entity, Has<Interactable>>,
 	mut event_writer: EventWriter<InteractionEvent>,
 	spatial_query: SpatialQuery,
 ) {
@@ -72,79 +54,68 @@ pub fn interact_input(
 			.iter()
 			.find(|entity| camera_query.contains(**entity))
 			.unwrap();
+
 		let mut camera_transform = camera_query.get(*camera_entity).unwrap();
 
 		let filter = SpatialQueryFilter::new().without_entities([entity]); //.with_masks([Layer::Interactable]);
 
-		if let Some(ray_hit) = spatial_query.cast_ray(
+		let ray_hit = spatial_query.cast_ray(
 			camera_transform.translation(),
 			camera_transform.forward(),
-			5.0,
+			4.0,
 			true,
 			filter,
-		) {
-			event_writer.send(InteractionEvent {
-				player: entity,
-				interactable: ray_hit.entity,
-			})
-		}
+		);
+		
+		event_writer.send(InteractionEvent {
+			player: entity,
+			station: ray_hit.map(|hit| hit.entity),
+		});
 	}
 }
 
-// This is such a mess omfg
-pub fn interact(world: &mut World) {
-	let type_registry = world.resource::<AppTypeRegistry>().0.clone();
-	let type_registry = type_registry.read();
 
-	let mut events = world.resource_mut::<Events<InteractionEvent>>();
-	let last_events: Vec<_> = events.get_reader().read(events.as_ref()).copied().collect();
-	events.clear();
+pub fn interact(
+	mut event_reader: EventReader<InteractionEvent>,
+	mut player_q: Query<(&mut Hunger, &mut Thirst, &mut Inventory), With<Player>>,
+	mut item_q: Query<&mut Item>,
+	mut station_q: Query<&mut Station>,
+) {
+	for InteractionEvent { player, station } in event_reader.read() {
 
-	for interaction in last_events {
-		let components: Vec<_> = world
-			.entity(interaction.interactable)
-			.archetype()
-			.components()
-			.collect();
+		let (mut hunger, mut thirst, mut inventory) = player_q.get_mut(*player).unwrap();
+	
+		let mut main_item = inventory.main_hand.and_then(|entity| item_q.get_mut(entity).ok());
+		let mut station = station.and_then(|entity| station_q.get_mut(entity).ok());
 
-		for component_id in components.into_iter() {
-			let type_id = world
-				.components()
-				.get_info(component_id)
-				.unwrap()
-				.type_id()
-				.unwrap();
-
-			let Some(component) = world.get_mut_by_id(interaction.interactable, component_id)
-			else {
-				continue;
-			};
-
-			let component: MutUntyped<'static> = unsafe { std::mem::transmute(component) };
-
-			let Some(mut view) =
-				get_interaction_from_mut_untyped(component, &type_registry, type_id)
-			else {
-				continue;
-			};
-
-			view.interact(interaction, world)
+		match (main_item.as_deref_mut(), station.as_deref_mut()) {
+			(Some(Item::Cup { filled }), Some(Station::WaterStation(ty))) => {
+				if !*filled {
+					println!("Filled cup!");
+					*filled = true;
+				}
+			},
+			(hand_item, Some(Station::Shelf(shelf_item))) => { 
+				if let Some(hand_item) = hand_item {
+					println!("Put {:?} on the shelf", hand_item);
+				} 
+				if let Some(shelf_item) = shelf_item.and_then(|entity| item_q.get(entity).ok()) {
+					println!("Got {:?} from the shelf", shelf_item);
+				}
+				mem::swap(&mut inventory.main_hand, shelf_item);
+			},
+			(_, Some(Station::WaterStation(ty))) => {
+				println!("Drank from filter!");
+				thirst.0 += 10.0;
+			},
+			(Some(Item::Cup { filled }), _) => {
+				if *filled {
+					println!("Drank from cup!");
+					*filled = false;
+					thirst.0 += 10.0;
+				}
+			},
+			_ => (),
 		}
 	}
-}
-
-fn get_interaction_from_mut_untyped<'a>(
-	component: MutUntyped<'a>,
-	type_registry: &TypeRegistry,
-	type_id: std::any::TypeId,
-) -> Option<Mut<'a, dyn Interaction>> {
-	let reflect_from_ptr = type_registry.get(type_id)?.data::<ReflectFromPtr>()?;
-	let reflect_view = type_registry.get_type_data::<ReflectInteraction>(type_id)?;
-
-	let reflect = component.map_unchanged(|ptr| unsafe { reflect_from_ptr.as_reflect_mut(ptr) });
-	let view = reflect.map_unchanged(|reflect| unsafe {
-		reflect_view.get_mut(std::mem::transmute(reflect)).unwrap()
-	});
-
-	Some(view)
 }
