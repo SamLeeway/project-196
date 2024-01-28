@@ -1,13 +1,12 @@
 use std::{f32::consts::PI, ops::DerefMut};
 
 use bevy::{
-	prelude::*,
-	window::{CursorGrabMode, PrimaryWindow},
+	core_pipeline::fxaa::Fxaa, prelude::*, render::camera::CameraRenderGraph, window::{CursorGrabMode, PrimaryWindow}
 };
 use bevy_xpbd_3d::{parry::na::clamp, prelude::*};
 use leafwing_input_manager::prelude::*;
 
-use crate::{input::Action, items::Item};
+use crate::{input::Action, interaction::Layer, items::Cup};
 
 
 pub struct PlayerPlugin;
@@ -47,6 +46,9 @@ pub struct Inventory {
 }
 
 #[derive(Component, Debug, Clone, Copy)]
+pub struct ItemParent;
+
+#[derive(Component, Debug, Clone, Copy)]
 pub struct Player;
 
 #[derive(Component, Debug, Clone, Copy)]
@@ -66,10 +68,10 @@ impl Default for PlayerBundle {
 	fn default() -> Self {
 		Self {
 			player: Player,
-			health: Health(1.0),
-			hunger: Hunger(1.0),
-			thirst: Thirst(1.0),
-			energy: Energy(1.0),
+			health: Health(100.0),
+			hunger: Hunger(100.0),
+			thirst: Thirst(100.0),
+			energy: Energy(100.0),
 			inventory: Inventory::default(),
 		}
 	}
@@ -134,16 +136,11 @@ pub fn spawn_player(
 	);
 	let material = materials.add(StandardMaterial::default());
 
-	let item = commands.spawn((
-		Name::new("Cup"),
-		Item::Cup { filled: false },
-	)).id();
-
 	commands
 		.spawn((
 			Name::new("Player"),
 			PlayerBundle {
-				inventory: Inventory { main_hand: Some(item) },
+				inventory: Inventory { main_hand: None },
 				..default()
 			},
 			PbrBundle {
@@ -171,7 +168,17 @@ pub fn spawn_player(
 					..default()
 				},
 				VisibilityBundle::default(),
-			));
+			)).with_children(|commands| {
+				commands.spawn((
+					Name::new("Item parent"),
+					ItemParent,
+					TransformBundle {
+						local: Transform::from_translation(Vec3::new(0.3, -0.25, -0.4)),
+						..default()
+					},
+					VisibilityBundle::default(),
+				));
+			});
 		});
 }
 
@@ -183,18 +190,25 @@ pub fn drain_stats(
 	time: Res<Time>,
 ) {
 	for (entity, mut hunger) in hunger_q.iter_mut() {
-		**hunger -= time.delta_seconds() / 120.0;
+		**hunger -= time.delta_seconds();
 		if **hunger < 0.0 {
-			health_q.get_mut(entity).unwrap().0 += **hunger;
+			health_q.get_mut(entity).unwrap().0 += **hunger * 0.2;
 			**hunger = 0.0;
 		}
 	}
 
 	for (entity, mut thirst) in thirst_q.iter_mut() {
-		**thirst -= time.delta_seconds() / 80.0;
+		**thirst -= time.delta_seconds() * 1.5;
 		if **thirst < 0.0 {
-			health_q.get_mut(entity).unwrap().0 += **thirst;
+			health_q.get_mut(entity).unwrap().0 += **thirst * 0.15;
 			**thirst = 0.0;
+		}
+	}
+
+	for (entity, mut energy) in energy_q.iter_mut() {
+		**energy -= time.delta_seconds() * 0.3;
+		if **energy < 0.0 {
+			**energy = 0.0;
 		}
 	}
 }

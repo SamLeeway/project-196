@@ -18,7 +18,7 @@ lto = true
 panic = "abort"
 
 [dependencies]
-bevy = { version = "0.12.1" }
+bevy = { version = "0.12.1"}
 bevy-inspector-egui = "0.22.1" # Inspector
 bevy_egui = "0.24.0" # Debug UI
 bevy_embedded_assets = "0.9.1"
