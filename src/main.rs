@@ -1,20 +1,20 @@
 #![allow(unused)]
+#![allow(clippy::type_complexity)]
+#![allow(clippy::too_many_arguments)]
 
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::*;
 use bevy_xpbd_3d::plugins::PhysicsPlugins;
-use leafwing_input_manager::prelude::*;
-use stations::FilterType;
 
 mod input;
 mod interaction;
 mod player;
-mod world;
 mod ui;
+mod world;
 
+mod energy;
 mod items;
 mod stations;
-mod energy;
 
 fn main() {
 	let mut app = App::default();
@@ -28,12 +28,13 @@ fn main() {
 			..default()
 		}),
 		input::InputPlugin,
-		interaction::InteractionPlugin,
+		ui::UiPlugin,
 		PhysicsPlugins::default(),
 		player::PlayerPlugin,
-		ui::UiPlugin,
+		items::ItemsPlugin,
+		stations::StationsPlugin,
+		interaction::InteractionPlugin,
 	))
-	.add_systems(Startup, stations::spawn_station)
 	.add_systems(Update, energy::energy_system);
 
 	#[cfg(debug_assertions)]

@@ -17,10 +17,17 @@ pub struct EnergyGenerator {
 pub fn energy_system(
 	generator_q: Query<(&TurnedOn, &EnergyGenerator)>,
 	mut consumer_q: Query<(&TurnedOn, &mut ElecticComponent)>,
-
 ) {
-	let generated_power: f32 = generator_q.iter().filter(|q| **q.0).map(|q| q.1.generates).sum();
-	let consumed_power: f32 = consumer_q.iter().filter(|q| **q.0).map(|q| q.1.consumption).sum();
+	let generated_power: f32 = generator_q
+		.iter()
+		.filter(|q| **q.0)
+		.map(|q| q.1.generates)
+		.sum();
+	let consumed_power: f32 = consumer_q
+		.iter()
+		.filter(|q| **q.0)
+		.map(|q| q.1.consumption)
+		.sum();
 
 	let enough_power = consumed_power > generated_power;
 
@@ -28,4 +35,3 @@ pub fn energy_system(
 		component.powered = turned_on.0 && enough_power;
 	}
 }
-

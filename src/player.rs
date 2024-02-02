@@ -1,31 +1,33 @@
-use std::{f32::consts::PI, ops::DerefMut};
+use std::f32::consts::PI;
 
 use bevy::{
-	core_pipeline::fxaa::Fxaa, prelude::*, render::camera::CameraRenderGraph, window::{CursorGrabMode, PrimaryWindow}
+	prelude::*,
+	window::{CursorGrabMode, PrimaryWindow},
 };
 use bevy_xpbd_3d::{parry::na::clamp, prelude::*};
 use leafwing_input_manager::prelude::*;
 
-use crate::{input::Action, interaction::Layer, items::Cup};
-
+use crate::{
+	input::Action,
+	items::{DisplayType, ItemDisplay, ItemHolder},
+};
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(
-				Startup,
-				(crate::player::spawn_player, crate::world::spawn_world),
-			)	
-			.add_systems(
-				Update,
-				(crate::player::move_player, crate::player::drain_stats),
-			)
-			.register_type::<Health>()
-			.register_type::<Hunger>()
-			.register_type::<Thirst>()
-			.register_type::<Energy>()
-			.register_type::<Inventory>();
-    }
+	fn build(&self, app: &mut App) {
+		app.add_systems(
+			Startup,
+			(crate::player::spawn_player, crate::world::spawn_world),
+		)
+		.add_systems(
+			Update,
+			(crate::player::move_player, crate::player::drain_stats),
+		)
+		.register_type::<Health>()
+		.register_type::<Hunger>()
+		.register_type::<Thirst>()
+		.register_type::<Energy>();
+	}
 }
 
 #[derive(Component, Reflect, Debug, Clone, Copy, Deref, DerefMut)]
@@ -40,14 +42,6 @@ pub struct Thirst(pub f32);
 #[derive(Component, Reflect, Debug, Clone, Copy, Deref, DerefMut)]
 pub struct Energy(pub f32);
 
-#[derive(Component, Reflect, Default, Debug, Clone, Copy)]
-pub struct Inventory {
-	pub main_hand: Option<Entity>,
-}
-
-#[derive(Component, Debug, Clone, Copy)]
-pub struct ItemParent;
-
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Player;
 
@@ -61,7 +55,7 @@ pub struct PlayerBundle {
 	hunger: Hunger,
 	energy: Energy,
 	thirst: Thirst,
-	inventory: Inventory,
+	//inventory: Inventory,
 }
 
 impl Default for PlayerBundle {
@@ -72,7 +66,7 @@ impl Default for PlayerBundle {
 			hunger: Hunger(100.0),
 			thirst: Thirst(100.0),
 			energy: Energy(100.0),
-			inventory: Inventory::default(),
+			//inventory: Inventory::default(),
 		}
 	}
 }
@@ -84,9 +78,9 @@ pub fn move_player(
 	>,
 	mut camera_query: Query<&mut Transform, (With<PlayerCamera>, Without<Player>)>,
 	window: Query<&Window, With<PrimaryWindow>>,
-	mut time: Res<Time>,
+	time: Res<Time>,
 ) {
-	for (entity, inputs, mut player_transform, children) in player_query.iter_mut() {
+	for (_entity, inputs, mut player_transform, children) in player_query.iter_mut() {
 		let camera_entity = children
 			.iter()
 			.find(|entity| camera_query.contains(**entity))
@@ -136,13 +130,11 @@ pub fn spawn_player(
 	);
 	let material = materials.add(StandardMaterial::default());
 
+	let mut display_root = None;
 	commands
 		.spawn((
 			Name::new("Player"),
-			PlayerBundle {
-				inventory: Inventory { main_hand: None },
-				..default()
-			},
+			PlayerBundle::default(),
 			PbrBundle {
 				mesh,
 				material,
@@ -153,32 +145,42 @@ pub fn spawn_player(
 			LockedAxes::ROTATION_LOCKED,
 			Collider::capsule(1.0, 0.4),
 			LinearVelocity::default(),
+			ItemHolder::default(),
 		))
 		.with_children(|commands| {
-			commands.spawn((
-				bevy::core_pipeline::fxaa::Fxaa::default(),
-				Name::new("Player Camera"),
-				PlayerCamera,
-				Camera3dBundle {
-					transform: Transform::from_translation(Vec3::Y * 0.75),
-					projection: Projection::Perspective(PerspectiveProjection {
-						fov: 85.0f32.to_radians(),
-						..default()
-					}),
-					..default()
-				},
-				VisibilityBundle::default(),
-			)).with_children(|commands| {
-				commands.spawn((
-					Name::new("Item parent"),
-					ItemParent,
-					TransformBundle {
-						local: Transform::from_translation(Vec3::new(0.3, -0.25, -0.4)),
+			commands
+				.spawn((
+					bevy::core_pipeline::fxaa::Fxaa::default(),
+					Name::new("Player Camera"),
+					PlayerCamera,
+					Camera3dBundle {
+						transform: Transform::from_translation(Vec3::Y * 0.75),
+						projection: Projection::Perspective(PerspectiveProjection {
+							fov: 85.0f32.to_radians(),
+							..default()
+						}),
 						..default()
 					},
 					VisibilityBundle::default(),
-				));
-			});
+				))
+				.with_children(|commands| {
+					let id = commands
+						.spawn((
+							Name::new("Item parent"),
+							TransformBundle {
+								local: Transform::from_translation(Vec3::new(0.3, -0.25, -0.4)),
+								..default()
+							},
+							VisibilityBundle::default(),
+						))
+						.id();
+
+					display_root = Some(id);
+				});
+		})
+		.insert(ItemDisplay {
+			display_root,
+			ty: DisplayType::Hand,
 		});
 }
 
@@ -205,7 +207,7 @@ pub fn drain_stats(
 		}
 	}
 
-	for (entity, mut energy) in energy_q.iter_mut() {
+	for (_entity, mut energy) in energy_q.iter_mut() {
 		**energy -= time.delta_seconds() * 0.3;
 		if **energy < 0.0 {
 			**energy = 0.0;
